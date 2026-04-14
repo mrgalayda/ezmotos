@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>EZ Motos — Moto Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0a; --surface:#161616; --surface2:#202020; --border:#2a2a2a;
+    --red:#ef4444; --text:#ffffff; --muted:#909090; --dim:#505050;
+    --green:#4ade80; --blue:#60a5fa; --amber:#fbbf24;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--text); font-family:'Barlow Condensed',sans-serif; }
+
+  /* Header */
+  .header { height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:var(--surface); border-bottom:2px solid var(--red); }
+  .logo { font-weight:900; font-size:22px; letter-spacing:.1em; text-transform:uppercase; display:flex; align-items:center; gap:8px; flex:0 0 220px; }
+  .logo-dot { width:9px; height:9px; background:var(--red); border-radius:50%; }
+  .ev-name { font-weight:900; font-size:20px; letter-spacing:.06em; text-transform:uppercase; text-align:center; flex:1; }
+  .header-right { flex:0 0 220px; display:flex; align-items:center; justify-content:flex-end; gap:14px; }
+  .ev-date { font-size:14px; color:var(--muted); }
+  .live-badge { display:none; align-items:center; gap:5px; font-weight:700; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--green); background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.3); border-radius:99px; padding:3px 10px; }
+  .live-dot { width:6px; height:6px; background:var(--green); border-radius:50%; animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+  /* Board */
+  .board { display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(3,334px); gap:5px; padding:5px; height:1024px; overflow:hidden; }
+
+  /* Card */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:5px; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+
+  /* Ghost watermark number */
+  .card::before {
+    content:attr(data-moto);
+    position:absolute; top:50%; left:6px; transform:translateY(-50%);
+    font-family:'Barlow Condensed',sans-serif; font-weight:900; font-style:italic; font-size:200px; line-height:1;
+    color:rgba(255,255,255,0.05);
+    pointer-events:none; user-select:none; z-index:0; letter-spacing:-.04em;
+  }
+
+  .card-head { display:flex; align-items:center; justify-content:space-between; padding:0 10px; height:28px; background:var(--surface2); border-bottom:1px solid var(--border); flex-shrink:0; position:relative; z-index:1; }
+  .card-class { font-weight:900; font-size:14px; letter-spacing:.06em; text-transform:uppercase; }
+  .card-mnum { font-weight:900; font-size:12px; color:var(--red); background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); border-radius:4px; padding:1px 7px; }
+
+  .card-cols { display:grid; grid-template-columns:46px 34px 1fr 46px 30px; padding:2px 10px; border-bottom:1px solid var(--border); flex-shrink:0; position:relative; z-index:1; }
+  .col-lbl { font-weight:700; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); }
+  .col-lbl.r { text-align:right; }
+  .col-lbl.c { text-align:center; }
+
+  .card-riders { flex:1; display:flex; flex-direction:column; justify-content:space-evenly; padding:2px 0; overflow:hidden; position:relative; z-index:1; }
+
+  .rider { display:grid; grid-template-columns:46px 34px 1fr 46px 30px; align-items:center; padding:0 10px; }
+  .rider:nth-child(even) { background:rgba(255,255,255,.025); }
+
+  .r-plate { font-weight:900; font-size:15px; color:var(--amber); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .r-age   { font-weight:700; font-size:12px; color:var(--muted); text-align:center; }
+  .r-name  { font-weight:700; font-size:15px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 5px; }
+  .r-moto  { font-weight:900; font-size:16px; color:var(--blue);  text-align:right; }
+  .r-main  { font-weight:900; font-size:16px; color:var(--green); text-align:right; }
+
+  /* Empty */
+  .board-empty { grid-column:1/-1; grid-row:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  .board-empty-title { font-weight:900; font-size:28px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .spinner { width:26px; height:26px; border:2px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* Overlay */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .selector { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:36px; width:560px; display:flex; flex-direction:column; gap:18px; }
+  .selector h2 { font-weight:900; font-size:26px; letter-spacing:.08em; text-transform:uppercase; }
+  .selector label { font-weight:700; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:6px; }
+  .selector select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:7px; color:var(--text); font-family:'Barlow Condensed',sans-serif; font-size:15px; padding:12px 40px 12px 14px; outline:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; cursor:pointer; }
+  .selector select:focus { border-color:var(--red); }
+  .selector select option { background:#1c1c1c; }
+  .selector button { width:100%; background:var(--red); color:#000; border:none; border-radius:7px; padding:14px; font-family:'Barlow Condensed',sans-serif; font-weight:900; font-size:17px; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; }
+  .selector button:hover { opacity:.88; }
+  .sel-error { font-size:12px; color:var(--red); display:none; }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="selector">
+    <h2>Moto Board</h2>
+    <div>
+      <label>Select Track</label>
+      <select id="track-sel">
+        <option value="">— choose a track —</option>
+      </select>
+    </div>
+    <div class="sel-error" id="sel-error"></div>
+    <button onclick="loadBoard()">Load Moto Board</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="logo"><span class="logo-dot"></span>EZ Motos</div>
+  <div class="ev-name" id="ev-name">—</div>
+  <div class="header-right">
+    <span class="ev-date" id="ev-date"></span>
+    <span class="live-badge" id="live-badge"><span class="live-dot"></span>Live</span>
+  </div>
+</div>
+
+<div class="board" id="board">
+  <div class="board-empty"><div class="board-empty-title">Select a track to begin</div></div>
+</div>
+
+<script>
+
+var ALL_TRACKS = [
+  {name:"80 35 BMX",num:"1778"},{name:"Abbotsford BMX",num:"1526"},{name:"Aberdeen Hub Area BMX",num:"1075"},{name:"Air Time BMX",num:"1902"},{name:"Akron BMX",num:"1886"},{name:"Ancient City BMX",num:"1793"},{name:"Antelope BMX",num:"2014"},{name:"Apple Valley BMX Moto Park",num:"1373"},{name:"Bakerview BMX",num:"1571"},{name:"Bellflower BMX",num:"1616"},{name:"Bend BMX",num:"0902"},{name:"Bethel Supercross BMX",num:"1885"},{name:"Bigfoot BMX",num:"1372"},{name:"Billerica BMX",num:"1625"},{name:"Black Mountain BMX",num:"0257"},{name:"Blanchard Woods BMX",num:"1907"},{name:"Blue Springs BMX",num:"0844"},{name:"BMX@Shoreham",num:"1839"},{name:"Boomtown BMX",num:"0987"},{name:"Boulder BMX Inc",num:"1781"},{name:"Bradley BMX",num:"1510"},{name:"Brighton BMX",num:"1614"},{name:"Buffalo Creek BMX",num:"1762"},{name:"Burdette Park BMX",num:"1903"},{name:"Burlington BMX",num:"1441"},{name:"Cabot BMX",num:"1783"},{name:"Caldwell BMX",num:"1224"},{name:"Can Am BMX",num:"1920"},{name:"Cape Cod BMX",num:"1640"},{name:"Cape Coral BMX",num:"1871"},{name:"Capital City (NC) BMX",num:"1296"},{name:"Capital City Family (MI) BMX",num:"1537"},{name:"Cargill Park BMX",num:"0156"},{name:"Carson City BMX",num:"1240"},{name:"Catamount BMX",num:"1888"},{name:"Cedar BMX",num:"0564"},{name:"Central Jersey BMX",num:"1858"},{name:"Central Wisconsin BMX",num:"0862"},{name:"Chandler BMX",num:"0001"},{name:"Charlie's BMX Track",num:"1872"},{name:"Chehalem Valley BMX",num:"1514"},{name:"Cherry Hill Park BMX",num:"1273"},{name:"Chesapeake BMX",num:"1623"},{name:"Circle City BMX",num:"1773"},{name:"Cleves BMX",num:"1919"},{name:"CNY BMX",num:"1911"},{name:"Cobb County BMX",num:"1282"},{name:"Coal Hills BMX",num:"1538"},{name:"Colorado River BMX",num:"1672"},{name:"Columbia Basin BMX",num:"1558"},{name:"Columbia River BMX",num:"1641"},{name:"Columbus BMX",num:"1880"},{name:"Cornwall BMX",num:"1991"},{name:"County Line BMX",num:"1673"},{name:"Cowtown BMX",num:"1274"},{name:"Cross Creek BMX",num:"1822"},{name:"Crow River BMX",num:"1405"},{name:"Crown Mountain BMX Park",num:"1964"},{name:"Dacono BMX",num:"1638"},{name:"Daytona BMX",num:"1966"},{name:"Derby City BMX",num:"1879"},{name:"Desert Downs BMX",num:"1055"},{name:"Deseret Peak BMX",num:"1518"},{name:"Desoto BMX",num:"1069"},{name:"Drake Well BMX",num:"1845"},{name:"Duke City BMX",num:"1046"},{name:"Durango BMX",num:"1615"},{name:"Eagle County BMX",num:"1798"},{name:"Eagle Park BMX",num:"1811"},{name:"East Idaho BMX",num:"2017"},{name:"East Moline BMX",num:"1921"},{name:"Ed Fountain Park BMX",num:"1680"},{name:"EHT BMX",num:"1841"},{name:"Electric City BMX",num:"1119"},{name:"Elings Park BMX",num:"1790"},{name:"Elkhorn BMX",num:"1473"},{name:"Emery Park BMX",num:"1036"},{name:"Emerald Valley BMX",num:"0081"},{name:"Falcon BMX",num:"1905"},{name:"Falls BMX Park",num:"1985"},{name:"Faribault BMX",num:"1437"},{name:"Farmer City BMX",num:"1910"},{name:"Fastrax BMX",num:"1486"},{name:"Fernley BMX",num:"1935"},{name:"First State BMX",num:"1385"},{name:"Florida State Series",num:"1968"},{name:"Fort Wayne BMX",num:"1752"},{name:"Freedom Park BMX",num:"1710"},{name:"Gallatin Valley BMX",num:"1030"},{name:"Goodyear BMX Raceway",num:"1789"},{name:"Grand Forks BMX",num:"1667"},{name:"Grand Traverse County BMX",num:"1873"},{name:"Green Lake BMX",num:"1557"},{name:"Gretna BMX Raceway",num:"1740"},{name:"H Town BMX Supercross",num:"2002"},{name:"Hagerstown BMX",num:"1863"},{name:"Hamilton BMX",num:"1756"},{name:"Hampton BMX",num:"1791"},{name:"Hanford BMX",num:"1590"},{name:"Hardesty National BMX Stadium",num:"2011"},{name:"HD BMX",num:"1960"},{name:"Heartland BMX",num:"1116"},{name:"High Springs BMX",num:"1901"},{name:"Hire Park BMX",num:"1897"},{name:"Hodag BMX",num:"1517"},{name:"Hornets Nest BMX",num:"1316"},{name:"Horseheads BMX",num:"1413"},{name:"Hunterdon County BMX",num:"1894"},{name:"I94 BMX",num:"1302"},{name:"Imagination Glen BMX",num:"1548"},{name:"Imperial Valley BMX",num:"1368"},{name:"Indy Cycloplex BMX",num:"1952"},{name:"Interstate BMX",num:"1807"},{name:"Jacksonville BMX",num:"1896"},{name:"Johnstown BMX",num:"1835"},{name:"Kettering BMX",num:"1268"},{name:"Kingston Point BMX",num:"1238"},{name:"Klamath Falls BMX",num:"1471"},{name:"Lake Havasu City BMX",num:"1292"},{name:"Lake Shore BMX",num:"1796"},{name:"Lakes Area BMX",num:"1213"},{name:"Lancaster BMX",num:"1720"},{name:"Langley BMX",num:"1485"},{name:"Lemoore BMX Raceway",num:"1981"},{name:"Lexington BMX",num:"1904"},{name:"Lincoln Park BMX",num:"1251"},{name:"Lone Star BMX",num:"1346"},{name:"MadTown BMX",num:"1967"},{name:"Mag Ridge BMX Park",num:"1782"},{name:"Mankato Area BMX",num:"0512"},{name:"Manzanita Park BMX",num:"1853"},{name:"Marquette BMX",num:"0102"},{name:"Marysville BMX",num:"2005"},{name:"Mayes County BMX",num:"2003"},{name:"Metro BMX",num:"1186"},{name:"Miami South BMX",num:"1875"},{name:"Midland BMX",num:"1883"},{name:"Mike Sedar BMX",num:"1019"},{name:"Mile High BMX",num:"1947"},{name:"Milton BMX",num:"1826"},{name:"Mingus Mountain BMX",num:"2015"},{name:"Molalla River BMX",num:"1380"},{name:"Morgan Hill BMX",num:"2018"},{name:"Moses Lake BMX",num:"1709"},{name:"Music City BMX",num:"1813"},{name:"Nanaimo BMX",num:"1483"},{name:"Naples BMX",num:"1916"},{name:"Nellis BMX",num:"1929"},{name:"New Paltz BMX",num:"1864"},{name:"Noonday BMX",num:"1575"},{name:"North Bay BMX",num:"1721"},{name:"North Shore BMX",num:"1978"},{name:"Northern Virginia BMX",num:"1891"},{name:"Oak Creek BMX",num:"0962"},{name:"Oak Mountain BMX",num:"1830"},{name:"Oceanside BMX",num:"1605"},{name:"Okeeheelee BMX",num:"1884"},{name:"Oldsmar BMX Supercross",num:"1645"},{name:"Omaha BMX",num:"1734"},{name:"ORL BMX",num:"1777"},{name:"Park City BMX",num:"1909"},{name:"Peachtree BMX",num:"1870"},{name:"Pearland BMX",num:"1531"},{name:"Pemberton BMX",num:"1956"},{name:"Penticton BMX",num:"1662"},{name:"Pineview Park BMX",num:"1488"},{name:"Pitsky Park BMX",num:"2020"},{name:"Rad Canyon BMX",num:"0126"},{name:"Rapid City BMX",num:"1948"},{name:"Raytown BMX",num:"1498"},{name:"Razor City BMX",num:"1563"},{name:"Red Hills BMX",num:"1800"},{name:"Red River BMX",num:"1360"},{name:"Redwood Empire BMX",num:"1279"},{name:"Revolution Bike Park",num:"0740"},{name:"Richfield Park BMX",num:"1799"},{name:"Richmond BMX",num:"1914"},{name:"River City BMX",num:"1259"},{name:"River Valley MN BMX",num:"1337"},{name:"River Valley WA BMX",num:"0115"},{name:"Riverside BMX",num:"1881"},{name:"Rock City BMX",num:"1890"},{name:"Rock Hill BMX Supercross",num:"1971"},{name:"Rock Island Indoor BMX",num:"1936"},{name:"Rockford BMX",num:"0442"},{name:"Rockys Creekside BMX",num:"2019"},{name:"Rogue Valley BMX",num:"1509"},{name:"Rusty Bowl BMX",num:"0897"},{name:"Sand Springs BMX",num:"1480"},{name:"Sandy Ridge BMX",num:"1878"},{name:"Santa Clara Utah BMX",num:"2004"},{name:"Sarasota BMX",num:"1831"},{name:"Seatac BMX",num:"0239"},{name:"Shelby Farms BMX",num:"1847"},{name:"Show Low BMX",num:"1805"},{name:"Smith Rock BMX",num:"1610"},{name:"Smoky Mountain BMX",num:"1843"},{name:"Snake River BMX",num:"1076"},{name:"South Towns BMX",num:"1913"},{name:"Southern Maryland BMX",num:"1683"},{name:"Southwest Wyoming BMX",num:"1561"},{name:"Speedway BMX",num:"1769"},{name:"Steel Wheels Indoor BMX",num:"1577"},{name:"Spokes BMX",num:"1195"},{name:"Spokane BMX",num:"1801"},{name:"Springfield BMX Raceway",num:"1849"},{name:"Spreckels Park BMX",num:"1770"},{name:"Squamish BMX Racing",num:"1746"},{name:"St. Cloud BMX",num:"1874"},{name:"St. Peters BMX",num:"1229"},{name:"Stouffville BMX",num:"1983"},{name:"Sun City BMX",num:"1593"},{name:"Supertrak BMX",num:"1695"},{name:"Tanglewood BMX",num:"1906"},{name:"The Hill BMX",num:"1178"},{name:"TRI CITY NE BMX",num:"1713"},{name:"Tri City NY BMX",num:"1889"},{name:"Triple Creek BMX",num:"1961"},{name:"Trumbull BMX",num:"1833"},{name:"Tucson BMX",num:"1676"},{name:"Twin Silo BMX",num:"1352"},{name:"Umpqua Valley BMX",num:"0130"},{name:"Upstate BMX",num:"1760"},{name:"Valley BMX",num:"0263"},{name:"Virgin BMX",num:"1861"},{name:"VMP BMX",num:"1927"},{name:"Wakefield BMX",num:"1922"},{name:"Walla Walla BMX",num:"1390"},{name:"Waterford Oaks BMX",num:"1908"},{name:"Waukegan BMX",num:"1867"},{name:"Wee Chi Tah BMX",num:"1965"},{name:"West Kootenay BMX",num:"1810"},{name:"West Texas BMX",num:"1780"},{name:"Westerville BMX",num:"1887"},{name:"Westmoreland BMX",num:"1924"},{name:"Whip City BMX",num:"1633"},{name:"Whittier Narrows BMX",num:"1202"},{name:"Wild Chile BMX",num:"1937"},{name:"Winchester BMX",num:"1899"},{name:"Winnebagoland BMX",num:"0678"},{name:"Wolfe Creek BMX",num:"1828"},{name:"Woodland BMX",num:"1776"},{name:"Woodward BMX Track",num:"1999"},{name:"Woodward Park BMX",num:"1898"},{name:"Yucaipa BMX",num:"1975"},{name:"Yukon BMX",num:"1651"},{name:"Yuma BMX",num:"0009"}
+].sort(function(a,b){ return a.name.localeCompare(b.name); });
+
+// Populate dropdown
+var sel = document.getElementById('track-sel');
+ALL_TRACKS.forEach(function(t) {
+  var o = document.createElement('option');
+  o.value = t.num;
+  o.textContent = t.name;
+  sel.appendChild(o);
+});
+
+function formatDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+}
+
+function loadBoard() {
+  var num = document.getElementById('track-sel').value;
+  var errEl = document.getElementById('sel-error');
+  if (!num) { errEl.textContent = 'Please select a track.'; errEl.style.display = ''; return; }
+  errEl.style.display = 'none';
+  document.getElementById('board').innerHTML = '<div class="board-empty"><div class="spinner"></div><div class="board-empty-title">Loading</div></div>';
+  document.getElementById('overlay').style.display = 'none';
+  fetch('https://motoboards.usabmx.com/events/track_' + num + '.json', {mode:'cors'})
+    .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+    .then(function(d) { renderBoard(d); })
+    .catch(function() {
+      document.getElementById('board').innerHTML = '<div class="board-empty"><div class="board-empty-title">No Data Available</div></div>';
+      document.getElementById('overlay').style.display = 'flex';
+      errEl.textContent = 'Could not load moto data.'; errEl.style.display = '';
+    });
+}
+
+function renderBoard(data) {
+  var race = Object.values(data.races || {})[0];
+  if (!race) return;
+  document.getElementById('ev-name').textContent = data.event_name || '';
+  document.getElementById('ev-date').textContent = formatDate(data.publish_at);
+  var now = new Date();
+  var s = data.publish_at ? new Date(data.publish_at) : null;
+  var e = data.publish_until ? new Date(data.publish_until) : null;
+  if (s && e && now >= s && now <= e) document.getElementById('live-badge').style.display = 'flex';
+
+  var motogroups = race.motogroups || {};
+  var ageclasses = race.ageclasses || {};
+  var acIdToName = {};
+  Object.keys(ageclasses).forEach(function(name) { acIdToName[ageclasses[name].id] = name; });
+
+  var cardMap = {};
+  Object.values(motogroups).forEach(function(mg) {
+    var isMain = Object.keys(mg.round || {})[0] === 'Main';
+    var acId = mg.ageclass_id;
+    var motoNum = parseInt(mg.name) || 0;
+    if (!cardMap[acId]) cardMap[acId] = {acName: acIdToName[acId] || '', motoNum: motoNum, riders: {}};
+    if (motoNum < cardMap[acId].motoNum) cardMap[acId].motoNum = motoNum;
+    Object.keys(mg.riders || {}).forEach(function(serial) {
+      var r = mg.riders[serial];
+      if (!cardMap[acId].riders[serial]) {
+        cardMap[acId].riders[serial] = {
+          first_name: r.first_name, last_name: r.last_name,
+          plate_number: r.plate_number, list_order_position: r.list_order_position,
+          age_for_race: r.age_for_race, proficiency_code: r.proficiency_code,
+          motoGates: [], mainGate: null
+        };
+      }
+      if (isMain) {
+        cardMap[acId].riders[serial].mainGate = r.lane_1 > 0 ? r.lane_1 : null;
+      } else {
+        var gates = [];
+        if (r.lane_1 > 0) gates.push(r.lane_1);
+        if (r.lane_2 > 0) gates.push(r.lane_2);
+        if (r.lane_3 > 0) gates.push(r.lane_3);
+        cardMap[acId].riders[serial].motoGates = gates;
+      }
+    });
+  });
+
+  var cards = Object.values(cardMap).sort(function(a,b) { return a.motoNum - b.motoNum; });
+
+  var html = '';
+  cards.forEach(function(card) {
+    var riders = Object.values(card.riders).sort(function(a,b) { return a.list_order_position - b.list_order_position; });
+    var rows = '';
+    riders.forEach(function(r) {
+      var name = r.first_name.trim() + ' ' + r.last_name.trim();
+      var agProf = r.age_for_race ? (r.age_for_race + (r.proficiency_code || '').toUpperCase()) : '';
+      var motoG = r.motoGates.length ? r.motoGates.join('\u00b7') : '\u2014';
+      var mainG = r.mainGate ? r.mainGate : '\u2014';
+      rows += '<div class="rider">' +
+        '<span class="r-plate">' + (r.plate_number || '') + '</span>' +
+        '<span class="r-age">' + agProf + '</span>' +
+        '<span class="r-name">' + name + '</span>' +
+        '<span class="r-moto">' + motoG + '</span>' +
+        '<span class="r-main">' + mainG + '</span>' +
+        '</div>';
+    });
+    html += '<div class="card" data-moto="' + card.motoNum + '">' +
+      '<div class="card-head"><span class="card-class">' + card.acName + '</span><span class="card-mnum">M' + card.motoNum + '</span></div>' +
+      '<div class="card-cols"><span class="col-lbl">Plate</span><span class="col-lbl c">Age</span><span class="col-lbl">Rider</span><span class="col-lbl r" style="color:var(--blue)">Moto</span><span class="col-lbl r" style="color:var(--green)">Main</span></div>' +
+      '<div class="card-riders">' + rows + '</div>' +
+      '</div>';
+  });
+  document.getElementById('board').innerHTML = html;
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('overlay').style.display = 'flex';
+});
+
+// Auto-load static test data
+var STATIC_JSON = '{"event_name":"Single Point Saturday","publish_at":"2025-10-25T14:00:00.000Z","publish_until":"2025-10-25T19:00:00.000Z","races":{"D0B2BB2B":{"id":"D0B2BB2B","name":"Single Point Saturday","ageclasses":{"3 Bal. Bike":{"id":"45189EE3-AFE0-459F-B355-F0A0491772B3","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"17-20 Cr":{"id":"9092B9D5-551A-4CD4-B89D-E8063FF763AB","additional_qualifying_items":{"MAIN":{"total_riders":4,"groups":"1"}}},"1-5 Novice":{"id":"0497671C-E470-40A5-BFAF-B34A8388C266","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"8 Novice":{"id":"C13D0E64-5AF7-48D4-B9AD-6FC0267E08A4","additional_qualifying_items":{"MAIN":{"total_riders":4,"groups":"1"}}},"10 Novice":{"id":"39A52952-7264-4C28-9BFD-65A1632B9ACB","additional_qualifying_items":{"MAIN":{"total_riders":4,"groups":"1"}}},"9 Inter":{"id":"DD26CE84-4BF2-4BF3-B0A5-5360F65D8F5C","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"10 Inter":{"id":"D503866C-2102-493C-B4E5-29858B8D1EDF","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"11 Inter":{"id":"1FE703FE-A1EA-41A4-B819-B54CD3014D5F","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"36-40 Inter":{"id":"5A20C854-DADF-493B-A176-4112E1571E50","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"13 Expert":{"id":"CF7A5CCE-5F74-41D1-942C-B332289D40E6","additional_qualifying_items":{"MAIN":{"total_riders":3,"groups":"1"}}},"17-20 Ex":{"id":"E603CD6B-7CBE-4B53-B5AB-8F096498382E","additional_qualifying_items":{"MAIN":{"total_riders":4,"groups":"1"}}}},"motogroups":{"MG-1M":{"ageclass_id":"45189EE3-AFE0-459F-B355-F0A0491772B3","round":{"Moto":123},"name":"1","riders":{"18674593":{"first_name":"AXEL","last_name":"SEEFURTH","plate_number":"593","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":2,"proficiency_code":"Y","city":"INGLESIDE","state":"IL","sponsor":""},"18674618":{"first_name":"MYLO","last_name":"TREFFERT","plate_number":"618","lane_1":6,"lane_2":8,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":3,"proficiency_code":"Y","city":"PLEASANT PRAIRIE","state":"WI","sponsor":""},"18674406":{"first_name":"MALLORY","last_name":"PASTELL","plate_number":"406","lane_1":4,"lane_2":6,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":4,"proficiency_code":"Y","city":"BEACH PARK","state":"IL","sponsor":""}}},"MG-1A":{"ageclass_id":"45189EE3-AFE0-459F-B355-F0A0491772B3","round":{"Main":1},"name":"1","riders":{"18674593":{"first_name":"AXEL","last_name":"SEEFURTH","plate_number":"593","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":2,"proficiency_code":"Y","city":"INGLESIDE","state":"IL","sponsor":""},"18674618":{"first_name":"MYLO","last_name":"TREFFERT","plate_number":"618","lane_1":2,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":3,"proficiency_code":"Y","city":"PLEASANT PRAIRIE","state":"WI","sponsor":""},"18674406":{"first_name":"MALLORY","last_name":"PASTELL","plate_number":"406","lane_1":8,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":4,"proficiency_code":"Y","city":"BEACH PARK","state":"IL","sponsor":""}}},"MG-2M":{"ageclass_id":"9092B9D5-551A-4CD4-B89D-E8063FF763AB","round":{"Moto":123},"name":"2","riders":{"04426378":{"first_name":"FRED","last_name":"BERTRAM JR","plate_number":"12","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":53,"proficiency_code":"C","city":"SHEBOYGAN","state":"WI","sponsor":""},"93004177":{"first_name":"BENTLEY","last_name":"MUHLBACH","plate_number":"3 A","lane_1":6,"lane_2":8,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":13,"proficiency_code":"C","city":"ANTIOCH","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18673533":{"first_name":"AMELIA","last_name":"BASELEY","plate_number":"1","lane_1":4,"lane_2":6,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":20,"proficiency_code":"H","city":"SILVER LAKE","state":"WI","sponsor":""},"04426085":{"first_name":"SCOTT","last_name":"MAYFIELD","plate_number":"3","lane_1":2,"lane_2":4,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":58,"proficiency_code":"C","city":"JANESVILLE","state":"WI","sponsor":""}}},"MG-2A":{"ageclass_id":"9092B9D5-551A-4CD4-B89D-E8063FF763AB","round":{"Main":1},"name":"2","riders":{"04426378":{"first_name":"FRED","last_name":"BERTRAM JR","plate_number":"12","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":53,"proficiency_code":"C","city":"SHEBOYGAN","state":"WI","sponsor":""},"93004177":{"first_name":"BENTLEY","last_name":"MUHLBACH","plate_number":"3 A","lane_1":2,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":13,"proficiency_code":"C","city":"ANTIOCH","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18673533":{"first_name":"AMELIA","last_name":"BASELEY","plate_number":"1","lane_1":8,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":20,"proficiency_code":"H","city":"SILVER LAKE","state":"WI","sponsor":""},"04426085":{"first_name":"SCOTT","last_name":"MAYFIELD","plate_number":"3","lane_1":6,"lane_2":0,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":58,"proficiency_code":"C","city":"JANESVILLE","state":"WI","sponsor":""}}},"MG-3M":{"ageclass_id":"0497671C-E470-40A5-BFAF-B34A8388C266","round":{"Moto":123},"name":"3","riders":{"18674607":{"first_name":"DEAN","last_name":"DISCH","plate_number":"607","lane_1":3,"lane_2":5,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":5,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"18674617":{"first_name":"EZRA","last_name":"TREFFERT","plate_number":"617","lane_1":1,"lane_2":3,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":5,"proficiency_code":"N","city":"PLEASANT PRAIRIE","state":"WI","sponsor":""},"18674612":{"first_name":"KALEB","last_name":"COLIN","plate_number":"612","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":4,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""}}},"MG-3A":{"ageclass_id":"0497671C-E470-40A5-BFAF-B34A8388C266","round":{"Main":1},"name":"3","riders":{"18674607":{"first_name":"DEAN","last_name":"DISCH","plate_number":"607","lane_1":7,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":5,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"18674617":{"first_name":"EZRA","last_name":"TREFFERT","plate_number":"617","lane_1":5,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":5,"proficiency_code":"N","city":"PLEASANT PRAIRIE","state":"WI","sponsor":""},"18674612":{"first_name":"KALEB","last_name":"COLIN","plate_number":"612","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":4,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""}}},"MG-4M":{"ageclass_id":"C13D0E64-5AF7-48D4-B9AD-6FC0267E08A4","round":{"Moto":123},"name":"4","riders":{"18674608":{"first_name":"JACOB","last_name":"GARDNER","plate_number":"608","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":8,"proficiency_code":"N","city":"MCHENRY","state":"IL","sponsor":""},"18674623":{"first_name":"HENRY","last_name":"PAULEY","plate_number":"623","lane_1":6,"lane_2":8,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":6,"proficiency_code":"N","city":"KENOSHA","state":"WI","sponsor":""},"18674584":{"first_name":"SERENA","last_name":"STEVENSON","plate_number":"584","lane_1":4,"lane_2":6,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":8,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"18674423":{"first_name":"MIGUEL","last_name":"LEDEZMA","plate_number":"187","lane_1":2,"lane_2":4,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":6,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""}}},"MG-4A":{"ageclass_id":"C13D0E64-5AF7-48D4-B9AD-6FC0267E08A4","round":{"Main":1},"name":"4","riders":{"18674608":{"first_name":"JACOB","last_name":"GARDNER","plate_number":"608","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":8,"proficiency_code":"N","city":"MCHENRY","state":"IL","sponsor":""},"18674623":{"first_name":"HENRY","last_name":"PAULEY","plate_number":"623","lane_1":2,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":6,"proficiency_code":"N","city":"KENOSHA","state":"WI","sponsor":""},"18674584":{"first_name":"SERENA","last_name":"STEVENSON","plate_number":"584","lane_1":8,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":8,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"18674423":{"first_name":"MIGUEL","last_name":"LEDEZMA","plate_number":"187","lane_1":6,"lane_2":0,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":6,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""}}},"MG-5M":{"ageclass_id":"39A52952-7264-4C28-9BFD-65A1632B9ACB","round":{"Moto":123},"name":"5","riders":{"18674611":{"first_name":"RUBI","last_name":"COLIN","plate_number":"611","lane_1":1,"lane_2":3,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":9,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""},"18674604":{"first_name":"JAXON","last_name":"COHN","plate_number":"604","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":9,"proficiency_code":"N","city":"SPRING GROVE","state":"IL","sponsor":""},"18674486":{"first_name":"KAYLIS","last_name":"WADLEY","plate_number":"57","lane_1":6,"lane_2":8,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":10,"proficiency_code":"N","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"18674204":{"first_name":"LUKE","last_name":"STEVENSON","plate_number":"204","lane_1":4,"lane_2":6,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":10,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""}}},"MG-5A":{"ageclass_id":"39A52952-7264-4C28-9BFD-65A1632B9ACB","round":{"Main":1},"name":"5","riders":{"18674611":{"first_name":"RUBI","last_name":"COLIN","plate_number":"611","lane_1":5,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":9,"proficiency_code":"N","city":"WAUKEGAN","state":"IL","sponsor":""},"18674604":{"first_name":"JAXON","last_name":"COHN","plate_number":"604","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":9,"proficiency_code":"N","city":"SPRING GROVE","state":"IL","sponsor":""},"18674486":{"first_name":"KAYLIS","last_name":"WADLEY","plate_number":"57","lane_1":2,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":10,"proficiency_code":"N","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"18674204":{"first_name":"LUKE","last_name":"STEVENSON","plate_number":"204","lane_1":8,"lane_2":0,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":10,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""}}},"MG-6M":{"ageclass_id":"DD26CE84-4BF2-4BF3-B0A5-5360F65D8F5C","round":{"Moto":123},"name":"6","riders":{"18674372":{"first_name":"ELLIS","last_name":"PAYSON","plate_number":"145","lane_1":3,"lane_2":5,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":9,"proficiency_code":"I","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"11784454":{"first_name":"GAGE","last_name":"SCHERKENBACH","plate_number":"62","lane_1":1,"lane_2":3,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":8,"proficiency_code":"I","city":"MCHENRY","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674374":{"first_name":"RILEY","last_name":"BENESCH","plate_number":"26","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":7,"proficiency_code":"I","city":"GURNEE","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"}}},"MG-6A":{"ageclass_id":"DD26CE84-4BF2-4BF3-B0A5-5360F65D8F5C","round":{"Main":1},"name":"6","riders":{"18674372":{"first_name":"ELLIS","last_name":"PAYSON","plate_number":"145","lane_1":7,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":9,"proficiency_code":"I","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"11784454":{"first_name":"GAGE","last_name":"SCHERKENBACH","plate_number":"62","lane_1":5,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":8,"proficiency_code":"I","city":"MCHENRY","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674374":{"first_name":"RILEY","last_name":"BENESCH","plate_number":"26","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":7,"proficiency_code":"I","city":"GURNEE","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"}}},"MG-7M":{"ageclass_id":"D503866C-2102-493C-B4E5-29858B8D1EDF","round":{"Moto":123},"name":"7","riders":{"18674384":{"first_name":"JAKE","last_name":"COOK","plate_number":"160","lane_1":4,"lane_2":6,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":10,"proficiency_code":"I","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"93029027":{"first_name":"AVERY","last_name":"PASTELL","plate_number":"100","lane_1":2,"lane_2":4,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":10,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""},"93023391":{"first_name":"JACKSON","last_name":"BENESCH","plate_number":"91","lane_1":7,"lane_2":1,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":10,"proficiency_code":"I","city":"GURNEE","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"}}},"MG-7A":{"ageclass_id":"D503866C-2102-493C-B4E5-29858B8D1EDF","round":{"Main":1},"name":"7","riders":{"18674384":{"first_name":"JAKE","last_name":"COOK","plate_number":"160","lane_1":8,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":10,"proficiency_code":"I","city":"WINTHROP HARBOR","state":"IL","sponsor":""},"93029027":{"first_name":"AVERY","last_name":"PASTELL","plate_number":"100","lane_1":6,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":10,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""},"93023391":{"first_name":"JACKSON","last_name":"BENESCH","plate_number":"91","lane_1":3,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":10,"proficiency_code":"I","city":"GURNEE","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"}}},"MG-8M":{"ageclass_id":"1FE703FE-A1EA-41A4-B819-B54CD3014D5F","round":{"Moto":123},"name":"8","riders":{"18674220":{"first_name":"CAMERON","last_name":"KROLL","plate_number":"38","lane_1":1,"lane_2":3,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":11,"proficiency_code":"I","city":"WADSWORTH","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"},"11784417":{"first_name":"KADEN","last_name":"SCHERKENBACH","plate_number":"41","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":10,"proficiency_code":"E","city":"JOHNSBURG","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674443":{"first_name":"CALVIN","last_name":"GREINER","plate_number":"154","lane_1":6,"lane_2":8,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":11,"proficiency_code":"N","city":"ANTIOCH","state":"IL","sponsor":"WAUKEGAN BMX"}}},"MG-8A":{"ageclass_id":"1FE703FE-A1EA-41A4-B819-B54CD3014D5F","round":{"Main":1},"name":"8","riders":{"18674220":{"first_name":"CAMERON","last_name":"KROLL","plate_number":"38","lane_1":5,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":11,"proficiency_code":"I","city":"WADSWORTH","state":"IL","sponsor":"WAUKEGAN BMX RACE TEAM"},"11784417":{"first_name":"KADEN","last_name":"SCHERKENBACH","plate_number":"41","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":10,"proficiency_code":"E","city":"JOHNSBURG","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674443":{"first_name":"CALVIN","last_name":"GREINER","plate_number":"154","lane_1":2,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":11,"proficiency_code":"N","city":"ANTIOCH","state":"IL","sponsor":"WAUKEGAN BMX"}}},"MG-9M":{"ageclass_id":"5A20C854-DADF-493B-A176-4112E1571E50","round":{"Moto":123},"name":"9","riders":{"18674444":{"first_name":"BRAD","last_name":"GREINER","plate_number":"104","lane_1":3,"lane_2":5,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":42,"proficiency_code":"I","city":"ANTIOCH","state":"IL","sponsor":"WAUKEGAN BMX"},"18674522":{"first_name":"JAYSON","last_name":"PASTELL","plate_number":"2","lane_1":1,"lane_2":3,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":40,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""},"18674601":{"first_name":"MICKEY","last_name":"GARVIN","plate_number":"601","lane_1":8,"lane_2":2,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":45,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""}}},"MG-9A":{"ageclass_id":"5A20C854-DADF-493B-A176-4112E1571E50","round":{"Main":1},"name":"9","riders":{"18674444":{"first_name":"BRAD","last_name":"GREINER","plate_number":"104","lane_1":7,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":42,"proficiency_code":"I","city":"ANTIOCH","state":"IL","sponsor":"WAUKEGAN BMX"},"18674522":{"first_name":"JAYSON","last_name":"PASTELL","plate_number":"2","lane_1":5,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":40,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""},"18674601":{"first_name":"MICKEY","last_name":"GARVIN","plate_number":"601","lane_1":4,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":45,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""}}},"MG-10M":{"ageclass_id":"CF7A5CCE-5F74-41D1-942C-B332289D40E6","round":{"Moto":123},"name":"10","riders":{"18673684":{"first_name":"CODY","last_name":"KRONENBERGER","plate_number":"120","lane_1":2,"lane_2":4,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":12,"proficiency_code":"E","city":"LAKE VILLA","state":"IL","sponsor":""},"93004177":{"first_name":"BENTLEY","last_name":"MUHLBACH","plate_number":"5","lane_1":7,"lane_2":1,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":13,"proficiency_code":"E","city":"ANTIOCH","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674536":{"first_name":"BREE","last_name":"PASTELL","plate_number":"7","lane_1":5,"lane_2":7,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":13,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""}}},"MG-10A":{"ageclass_id":"CF7A5CCE-5F74-41D1-942C-B332289D40E6","round":{"Main":1},"name":"10","riders":{"18673684":{"first_name":"CODY","last_name":"KRONENBERGER","plate_number":"120","lane_1":6,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":12,"proficiency_code":"E","city":"LAKE VILLA","state":"IL","sponsor":""},"93004177":{"first_name":"BENTLEY","last_name":"MUHLBACH","plate_number":"5","lane_1":3,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":13,"proficiency_code":"E","city":"ANTIOCH","state":"IL","sponsor":"ANTIOCH CYCLERY"},"18674536":{"first_name":"BREE","last_name":"PASTELL","plate_number":"7","lane_1":1,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":13,"proficiency_code":"I","city":"BEACH PARK","state":"IL","sponsor":""}}},"MG-11M":{"ageclass_id":"E603CD6B-7CBE-4B53-B5AB-8F096498382E","round":{"Moto":123},"name":"11","riders":{"11830382":{"first_name":"ERIC","last_name":"HAHN","plate_number":"13","lane_1":2,"lane_2":4,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":31,"proficiency_code":"E","city":"UNION GROVE","state":"WI","sponsor":""},"18674595":{"first_name":"ANDREW","last_name":"SEEFURTH","plate_number":"595","lane_1":7,"lane_2":1,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":33,"proficiency_code":"N","city":"INGLESIDE","state":"IL","sponsor":""},"18674419":{"first_name":"MICHAEL","last_name":"GARVIN","plate_number":"128","lane_1":5,"lane_2":7,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":14,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"93020227":{"first_name":"BAILEY","last_name":"ENGLISH","plate_number":"1","lane_1":3,"lane_2":5,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":16,"proficiency_code":"I","city":"SILVER LAKE","state":"WI","sponsor":"ANTIOCH CYCLERY"}}},"MG-11A":{"ageclass_id":"E603CD6B-7CBE-4B53-B5AB-8F096498382E","round":{"Main":1},"name":"11","riders":{"11830382":{"first_name":"ERIC","last_name":"HAHN","plate_number":"13","lane_1":6,"lane_2":0,"lane_3":0,"rack_position":"1","list_order_position":1,"age_for_race":31,"proficiency_code":"E","city":"UNION GROVE","state":"WI","sponsor":""},"18674595":{"first_name":"ANDREW","last_name":"SEEFURTH","plate_number":"595","lane_1":3,"lane_2":0,"lane_3":0,"rack_position":"2","list_order_position":2,"age_for_race":33,"proficiency_code":"N","city":"INGLESIDE","state":"IL","sponsor":""},"18674419":{"first_name":"MICHAEL","last_name":"GARVIN","plate_number":"128","lane_1":1,"lane_2":0,"lane_3":0,"rack_position":"3","list_order_position":3,"age_for_race":14,"proficiency_code":"N","city":"GURNEE","state":"IL","sponsor":""},"93020227":{"first_name":"BAILEY","last_name":"ENGLISH","plate_number":"1","lane_1":7,"lane_2":0,"lane_3":0,"rack_position":"4","list_order_position":4,"age_for_race":16,"proficiency_code":"I","city":"SILVER LAKE","state":"WI","sponsor":"ANTIOCH CYCLERY"}}}}}}}';
+var STATIC = JSON.parse(STATIC_JSON);
+document.getElementById('overlay').style.display = 'none';
+renderBoard(STATIC);
+
+</script>
+</body>
+</html>
